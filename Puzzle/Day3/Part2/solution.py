@@ -7,22 +7,54 @@ Sum = 0
 PrevBuffer = ""
 NextBuffer = ""
 
-def IsPartNumber(number, prevB, currentLine, nextB):
-    StartSearchIndex = number.start() - 1 if number.start() > 0 else 0
-    EndSearchIndex = number.end() if number.end() < len(currentLine) else len(currentLine) - 1
+def getEntireNumber(line, pos, lookLeft, lookRight):
+    if not line[pos].isdigit():
+        return ''
+    elif pos == 0 or pos == len(line) - 1:
+        return line[pos]
+    
+    result = line[pos]
+    if lookLeft:
+        result = getEntireNumber(line, pos - 1, True, False) + result
+    if lookRight:
+        result = result + getEntireNumber(line, pos + 1, False, True)
 
-    print(number.group())
-    print(number.start(), ' and ', number.end())
+    return result 
 
-    if (StartSearchIndex > 0 and currentLine[StartSearchIndex] != ".") or (EndSearchIndex < len(currentLine) - 1 and currentLine[EndSearchIndex] != "."):
-        print("found in current line")
-        return True
-    if prevB and re.search(r'[^.|\d]', prevB[StartSearchIndex:EndSearchIndex + 1]):
-        print("found in previous line")
-        return True
-    if nextB and re.search(r'[^.|\d]', nextB[StartSearchIndex:EndSearchIndex + 1]):
-        print("found in next line")
-        return True
+def findUp(pos, prevBuf):
+    result = []
+    if prevBuf[pos].isdigit():
+        return [getEntireNumber(prevBuf, pos, True, True)]
+    
+    if prevBuf[pos-1].isdigit():
+        result.append(getEntireNumber(prevBuf, pos-1, True, False))
+    if prevBuf[pos+1].isdigit():
+        result.append(getEntireNumber(prevBuf, pos+1, False, True))
+
+
+    return result
+
+def findHorizontal(pos, line):
+    result = []
+    if line[pos-1].isdigit():
+        result.append(getEntireNumber(line, pos-1, True, False))
+    if line[pos+1].isdigit():
+        result.append(getEntireNumber(line, pos+1, False, True))
+    return result
+
+def findDown(pos, nextBuf):
+    result = []
+    if nextBuf[pos].isdigit():
+        return [getEntireNumber(nextBuf, pos, True, True)]
+
+    if nextBuf[pos-1].isdigit():
+        result.append(getEntireNumber(nextBuf, pos-1, True, False))
+    if nextBuf[pos+1].isdigit():
+        result.append(getEntireNumber(nextBuf, pos+1, False, True))
+    return result
+
+def IsGearValid(horizontal, upLine, downLine):
+    return len(horizontal + upLine + downLine) == 2
 
 for index, line in enumerate(lines):
 
@@ -31,14 +63,23 @@ for index, line in enumerate(lines):
     else:
         NextBuffer = lines[index + 1]
  
-    #Find number that is not surrounded by "."
-    numbers = re.finditer(r'\d+', line)
-    for number in numbers:
-        if IsPartNumber(number, PrevBuffer, line, NextBuffer):
-            # print(number.group())
-            Sum += int(number.group())
+    #Find gears that in the line
+    gears = re.finditer(r'\*', line)
+    for gear in gears:
+        print(gear.start())
+        pos = gear.start()
+        upLine = findUp(pos, PrevBuffer)
+        print(upLine)
+        downLine = findDown(pos, NextBuffer)
+        print(downLine)
+        horizontal = findHorizontal(pos, line)
+        print(horizontal)
+
+        if IsGearValid(horizontal, upLine, downLine):
+            gearRatios = horizontal + upLine + downLine
+            ratio = int(gearRatios[0]) * int(gearRatios[1])
+            Sum += ratio
     
     PrevBuffer = line
         
-
 print("Sum", Sum)
